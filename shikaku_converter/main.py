@@ -25,19 +25,15 @@ def array_to_datafile(array, origin):
     filename = str(origin).split(".")[0] + ".dzn"
     file = open(f"resources/models/{filename}", "w")
     file.write(f"size = {side_length};\n\n")
-    file.write("given = [|\n")
+    file.write("given = [|")
     index = 0
     for element in array:
         if element.isdigit():
             row = (index // side_length) + 1
             col = (index % side_length) + 1
-            file.write(f"{row},{col},{element}|\n")
-
+            file.write(f"\n{row},{col},{element}|")
         index += 1
-
-
-
-
+    file.write("];")
 
 
 if __name__ == '__main__':
