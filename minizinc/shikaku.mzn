@@ -1,18 +1,48 @@
+include "fzn_diffn.mzn";
+include "fzn_diffn_reif.mzn";
+
 int: size;
 
 enum TABLE_COLUMNS = { ROW, COL, CLUE };
-enum TABLE_COLUMNS_RECT = { LEFTUP_X, LEFTUP_Y, RIGHTDOWN_X, RIGHTDOWN_Y };
 
 array[int, TABLE_COLUMNS] of int: given;
-array[int, TABLE_COLUMNS_RECT] of int: solution;
+array[index_set_1of2(given)] of var 1..size: lux;
+array[index_set_1of2(given)] of var 1..size: luy;
+array[index_set_1of2(given)] of var 1..size: dimx;
+array[index_set_1of2(given)] of var 1..size: dimy;
 
-constraint size^2 == sum(i in index_set_1of2(given)) (given[i, CLUE]);
 constraint forall(i in index_set_1of2(given))(
-  given[i, CLUE] == (solution[i, LEFTUP_X] - solution[i, RIGHTDOWN_X] + 1) * (solution[i, LEFTUP_Y] - solution[i, RIGHTDOWN_Y] + 1)
+  given[i, CLUE] == dimx[i] * dimy[i]
 );
+
+constraint forall(i in index_set_1of2(given))(
+  (lux[i] <= given[i, ROW] /\ lux[i]+dimx[i] >= given[i, ROW]) \/
+  (lux[i] >= given[i, ROW] /\ lux[i]+dimx[i] <= given[i, ROW])
+);
+
+constraint forall(i in index_set_1of2(given))(
+  (luy[i] <= given[i, COL] /\ luy[i]+dimy[i] >= given[i, COL]) \/
+  (luy[i] >= given[i, COL] /\ luy[i]+dimy[i] <= given[i, COL])
+);
+
+predicate diffn(array[int] of var int: x,
+                array[int] of var int: y,
+                array[int] of var int: dx,
+                array[int] of var int: dy) =
+    assert(
+        index_set(x) = index_set(y)  /\
+        index_set(x) = index_set(dx) /\
+        index_set(x) = index_set(dy),
+        "diffn: index set mismatch",
+        fzn_diffn(x,y,dx,dy)
+    );
+
+
+
+constraint diffn(lux, luy, dimx, dimy);
 
 solve satisfy;
 
 output [
-  "Sirvio!\n\(solution)"
+  "Point \(i)\n[\(lux[i]), \(luy[i])]\n[\(dimx[i]), \(dimy[i])]\n" | i in index_set_1of2(given)
 ];
