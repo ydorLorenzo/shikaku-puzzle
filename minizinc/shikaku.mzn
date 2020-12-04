@@ -10,6 +10,13 @@ array[clues] of var 1..size_y: luy;
 array[clues] of var 1..size_x: dimx;
 array[clues] of var 1..size_y: dimy;
 
+% input validation
+constraint forall(i in clues)(
+    assert(given[i, CLUE] > 0, "Invalid datafile: CLUE must be greater than 0") /\
+    assert(given[i, ROW] in 1..size_x, "Invalid datafile: ROW must be between 1 and \(size_x)") /\
+    assert(given[i, COL] in 1..size_y, "Invalid datafile: COL must be between 1 and \(size_y)") /\
+); 
+
 % constraint for area
 constraint forall(i in clues)(
     (dimx[i] * dimy[i] == given[i, CLUE])
