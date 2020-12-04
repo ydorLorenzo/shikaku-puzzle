@@ -1,48 +1,50 @@
-include "fzn_diffn.mzn";
-include "fzn_diffn_reif.mzn";
-
 int: size;
 
 enum TABLE_COLUMNS = { ROW, COL, CLUE };
 
 array[int, TABLE_COLUMNS] of int: given;
-array[index_set_1of2(given)] of var 1..size: lux;
-array[index_set_1of2(given)] of var 1..size: luy;
-array[index_set_1of2(given)] of var 1..size: dimx;
-array[index_set_1of2(given)] of var 1..size: dimy;
+set of int: clues = index_set_1of2(given);
+array[clues] of var 1..size: lux;
+array[clues] of var 1..size: luy;
+array[clues] of var 1..size: dimx;
+array[clues] of var 1..size: dimy;
 
-constraint forall(i in index_set_1of2(given))(
-  given[i, CLUE] == dimx[i] * dimy[i]
+% constraint for area
+constraint forall(i in clues)(
+    (dimx[i] * dimy[i] == given[i, CLUE])
 );
-
-constraint forall(i in index_set_1of2(given))(
-  (lux[i] <= given[i, ROW] /\ lux[i]+dimx[i] >= given[i, ROW]) \/
-  (lux[i] >= given[i, ROW] /\ lux[i]+dimx[i] <= given[i, ROW])
+% limit the rectangules to the total area
+constraint forall(i in clues) (
+    lux[i] + dimx[i] - 1 <= size /\ luy[i] + dimy[i] - 1 <= size 
 );
-
-constraint forall(i in index_set_1of2(given))(
-  (luy[i] <= given[i, COL] /\ luy[i]+dimy[i] >= given[i, COL]) \/
-  (luy[i] >= given[i, COL] /\ luy[i]+dimy[i] <= given[i, COL])
+% checking clue inside the rectangle
+constraint forall(i in clues) (
+    lux[i] <= given[i, ROW] /\ given[i, ROW] <= lux[i]+dimx[i]-1 /\
+    luy[i] <= given[i, COL] /\ given[i, COL] <= luy[i]+dimy[i]-1
 );
-
-predicate diffn(array[int] of var int: x,
-                array[int] of var int: y,
-                array[int] of var int: dx,
-                array[int] of var int: dy) =
-    assert(
-        index_set(x) = index_set(y)  /\
-        index_set(x) = index_set(dx) /\
-        index_set(x) = index_set(dy),
-        "diffn: index set mismatch",
-        fzn_diffn(x,y,dx,dy)
-    );
-
-
-
-constraint diffn(lux, luy, dimx, dimy);
+% checking other clues are outside the rectangle
+constraint forall(i,j in clues where i<j) (
+    (lux[i] > given[j, ROW] \/ given[j, ROW] > lux[i]+dimx[i]-1 \/
+    luy[i] > given[j, COL] \/ given[j, COL] > luy[i]+dimy[i]-1)
+);
+% checking for no overlaping
+constraint forall(i,j in clues where i<j)(
+        lux[i] + dimx[i] - 1 < lux[j] \/ luy[i] + dimy[i] - 1 < luy[j] \/
+        lux[j] + dimx[j] - 1 < lux[i] \/ luy[j] + dimy[j] - 1 < luy[i]
+);
 
 solve satisfy;
 
+% output [
+%   "Rectangle \(i)\n" ++
+%   "Up left corner: (\(lux[i]), \(luy[i]))\n" ++
+%   "Down right corner: (\(lux[i]+dimx[i]-1), \(luy[i]+dimy[i]-1))\n" ++
+%   "Clue: value: \(given[i, CLUE]), position: (\(given[i, ROW]), \(given[i, COL]))\n" | i in clues
+% ];
+
+% output ["\n\n"];
+
+% Left up corner (row, col), Right down corner (row, col), Clue position (row, col), Clue value
 output [
-  "Point \(i)\n[\(lux[i]), \(luy[i])]\n[\(dimx[i]), \(dimy[i])]\n" | i in index_set_1of2(given)
+  "\(lux[i]) \(luy[i]) \(lux[i]+dimx[i]-1) \(luy[i]+dimy[i]-1) \(given[i, ROW]) \(given[i, COL]) \(given[i, CLUE])\n" | i in clues
 ];
