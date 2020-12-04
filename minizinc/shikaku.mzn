@@ -17,6 +17,10 @@ constraint forall(i in clues)(
     assert(given[i, COL] in 1..size_y, "Invalid datafile: COL must be between 1 and \(size_y)")
 ); 
 
+constraint assert(
+  sum(i in clues)(given[i, CLUE]) == (size_x * size_y), "Invalid datafile: total area of CLUE not corresponding to board's area"
+);
+
 % constraint for area
 constraint forall(i in clues)(
     (dimx[i] * dimy[i] == given[i, CLUE])
