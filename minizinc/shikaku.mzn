@@ -12,10 +12,12 @@ array[clues] of var 1..size_y: dimy;
 
 % input validation
 constraint forall(i in clues)(
+    assert(size_x > 0, "Invalid row size: Row size must be greater than 0") /\
+    assert(size_y > 0, "Invalid col size: Col size must be greater than 0") /\
     assert(given[i, CLUE] > 0, "Invalid datafile: CLUE must be greater than 0") /\
     assert(given[i, ROW] in 1..size_x, "Invalid datafile: ROW must be between 1 and \(size_x)") /\
     assert(given[i, COL] in 1..size_y, "Invalid datafile: COL must be between 1 and \(size_y)")
-); 
+);
 
 constraint assert(
   sum(i in clues)(given[i, CLUE]) == (size_x * size_y), "Invalid datafile: total area of CLUE not corresponding to board's area"
