@@ -1,13 +1,14 @@
-int: size;
+int: size_x;
+int: size_y;
 
 enum TABLE_COLUMNS = { ROW, COL, CLUE };
 
 array[int, TABLE_COLUMNS] of int: given;
 set of int: clues = index_set_1of2(given);
-array[clues] of var 1..size: lux;
-array[clues] of var 1..size: luy;
-array[clues] of var 1..size: dimx;
-array[clues] of var 1..size: dimy;
+array[clues] of var 1..size_x: lux;
+array[clues] of var 1..size_y: luy;
+array[clues] of var 1..size_x: dimx;
+array[clues] of var 1..size_y: dimy;
 
 % constraint for area
 constraint forall(i in clues)(
@@ -15,7 +16,7 @@ constraint forall(i in clues)(
 );
 % limit the rectangules to the total area
 constraint forall(i in clues) (
-    lux[i] + dimx[i] - 1 <= size /\ luy[i] + dimy[i] - 1 <= size 
+    lux[i] + dimx[i] - 1 <= size_x /\ luy[i] + dimy[i] - 1 <= size_y
 );
 % checking clue inside the rectangle
 constraint forall(i in clues) (

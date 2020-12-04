@@ -22,22 +22,32 @@ def task_to_array(task_file):
     _spaces = []
     for elm in literals:
         _spaces.append(string2int(elm))
-    return _numbers, _spaces, int(math.sqrt(sum(_spaces) + len(_numbers)))
+    n_squares = sum(_spaces) + len(_numbers)
+    if n_squares == 2000:
+        n_row = 50
+        n_col = 40
+    elif n_squares == 1200:
+        n_row = 40
+        n_col = 30
+    else:
+        n_row = n_col = int(math.sqrt(n_squares))
+    return _numbers, _spaces, n_row, n_col
 
 
 # todo check for the monthly, daily and weekly puzzles because it's not a square problem
-def array_to_datafile(numbers, spaces, n, origin):
+def array_to_datafile(numbers, spaces, size_x, size_y, origin):
     filename = str(origin).split(".")[0] + ".dzn"
     file = open(f"resources/models/{filename}", "w")
-    file.write(f"size = {n};\n\n")
+    file.write(f"size_x = {size_x};\n")
+    file.write(f"size_y = {size_y};\n\n")
     file.write("given = [|")
     cumulative_index = 0
     for index, numb in enumerate(numbers):
         cumulative_index += spaces[index] + 1
-        row = math.ceil(cumulative_index/n)
-        col = cumulative_index % n
+        row = math.ceil(cumulative_index/size_y)
+        col = cumulative_index % size_y
         if col == 0:
-            col = n
+            col = size_y
         file.write(f"\n{row}, {col}, {numb}|")
     file.write("];\n")
     file.close()
@@ -46,5 +56,5 @@ def array_to_datafile(numbers, spaces, n, origin):
 if __name__ == '__main__':
     for (dirpath, dirnames, filenames) in walk("resources/tasks"):
         for filename in filenames:
-            numbs, sps, n = task_to_array(f"{dirpath}/{filename}")
-            array_to_datafile(numbs, sps, n, filename)
+            numbs, sps, nx, ny = task_to_array(f"{dirpath}/{filename}")
+            array_to_datafile(numbs, sps, nx, ny, filename)

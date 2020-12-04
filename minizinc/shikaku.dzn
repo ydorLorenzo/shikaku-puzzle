@@ -1,4 +1,5 @@
-size = 5;
+size_x = 5;
+size_y = 5;
 
 given = [|
   1, 5, 3|
