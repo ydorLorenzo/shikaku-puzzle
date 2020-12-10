@@ -37,7 +37,7 @@ def task_to_array(task_file):
 # todo check for the monthly, daily and weekly puzzles because it's not a square problem
 def array_to_datafile(numbers, spaces, size_x, size_y, origin):
     filename = str(origin).split(".")[0] + ".dzn"
-    file = open(f"resources/models/{filename}", "w")
+    file = open(f"resources/data/{filename}", "w")
     file.write(f"size_x = {size_x};\n")
     file.write(f"size_y = {size_y};\n\n")
     file.write("given = [|")
