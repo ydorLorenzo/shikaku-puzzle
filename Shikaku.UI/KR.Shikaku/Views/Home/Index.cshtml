@@ -1,0 +1,249 @@
+﻿@model ShikakuModel;
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="row" style="padding-top: 30px">
+    <div class="col-sm-3 text-left" style="padding-top: 30px">
+        <label>Select a Shikaku board to play:</label>
+        <ul>
+            <li><a href="@Url.Action("Index", "Home", new { id = 1})">5x5 Shikaku</a></li>
+            <li><a href="@Url.Action("Index", "Home", new { id = 2})">5x5 Shikaku</a></li>
+            <li><a href="@Url.Action("Index", "Home", new { id = 3})">5x5 Shikaku</a></li>
+            <li><a href="@Url.Action("Index", "Home", new { id = 4})">10x10 Shikaku</a></li>
+            <li><a href="@Url.Action("Index", "Home", new { id = 5})">15x15 Shikaku</a></li>
+            <li><a href="@Url.Action("Index", "Home", new { id = 6})">25x25 Shikaku</a></li>
+            <li><a href="@Url.Action("Index", "Home", new { id = 7})">25x25 Shikaku</a></li>
+            <li><a href="@Url.Action("Index", "Home", new { id = 8})">Special Daily Shikaku</a></li>
+            <li><a href="@Url.Action("Index", "Home", new { id = 9})">Special Weekly Shikaku</a></li>
+            <li><a href="@Url.Action("Index", "Home", new { id = 10})">Special Monthly Shikaku</a></li>
+        </ul>
+    </div>
+    <div class="col-sm-9 text-left" style="padding-top: 30px">
+        <label id="result"></label><br />
+        <canvas id="myCanvas" width="350" height="350"></canvas>
+    </div>
+
+</div>
+<div class="row">
+    <div class="col-sm-3"></div>
+    <div class="col-sm-9 text-left" style="padding-top: 10px">
+        <button onclick="document.location.reload()">Start Over</button>
+        <button onclick="validatePuzzleSolution()">Validate</button>
+        <button onclick="undoSelection()">Undo</button>
+    </div>
+</div>
+
+@section Scripts{
+    <script src="~/lib/jquery/dist/jquery.js"></script>
+    <script src="~/js/CluesData.js"></script>
+    <script src="~/lib/toastr/toastr.min.js"></script>
+    <script type="text/javascript">
+
+        function Point(x, y) {
+            this.x = x;
+            this.y = y;
+
+            this.equals = function (point) {
+                return x == point.x && y == point.y;
+            }
+        }
+
+        function Selection(startPoint, endPoint, cluePoint, clueValue) {
+            this.startPoint = startPoint;
+            this.endPoint = endPoint;
+            this.cluePoint = cluePoint;
+            this.clueValue = clueValue;
+        }
+
+        function Puzzle(clues, solution) {
+
+            this.rows = clues[0][0];
+            this.colums = clues[1][0];
+            var cluesMatrix = Array.matrix(this.rows, this.colums, 0);
+            for (index = 2; index < clues.length; index++) {
+                var entry = clues[index];
+                cluesMatrix[entry[0] - 1][entry[1] - 1] = entry[2];
+            }
+            this.clues = cluesMatrix;
+            this.solution = solution.map(x => new Selection(new Point(x[0], x[1]), new Point(x[2], x[3]), null, x[6]));
+
+        }
+
+        var canvas = document.getElementById("myCanvas");
+        var ctx = canvas.getContext("2d");
+        var $canvas = $("#myCanvas");
+        var w = 0, h = 0;
+        var initialPoint = new Point(0, 0);
+        var endPoint = new Point(0, 0);
+        var selectionMatrix = [];
+
+        var puzzle = new Puzzle(@Html.Raw(Json.Serialize(Model.Clues)), @Html.Raw(Json.Serialize(Model.Solution)) );
+
+        function setupCanvas() {
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 3;
+
+            rows = puzzle.rows;
+            cols = puzzle.colums;
+            w = 30;
+            h = 30;
+            ctx.canvas.width = cols * 30;
+            ctx.canvas.height = rows * 30;
+            cw = cols * 30;
+            ch = rows * 30;
+
+            draw();
+        }
+
+        function validateSelection(e) {
+            for (var j = 0; j < puzzle.solution.length; j++) {
+                var x = puzzle.solution[j]
+                if (x.startPoint.equals(e.startPoint) && x.endPoint.equals(e.endPoint) && x.clueValue == e.clueValue) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function validatePuzzleSolution() {
+            for (var i = 0; i < selectionMatrix.length; i++) {
+                var e = selectionMatrix[i];
+                var isCorrect = validateSelection(e);
+                if (!isCorrect) {
+                    toastr.error('Invalid Solution. Please try again');
+                    return;
+                }
+            }
+            toastr.success('The solution is correct!');
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, cw, ch);
+            ctx.save();
+
+            ctx.globalAlpha = 0.25;
+            ctx.lineWidth = 2;
+            ctx.font = "bold 16px Arial";
+            for (var y = 0; y < rows; y++) {
+                for (var x = 0; x < cols; x++) {
+                    ctx.strokeRect(x * w, y * h, w, h);
+                    var clue = puzzle.clues[y][x] > 0 ? puzzle.clues[y][x] : '';
+                    ctx.fillText(clue, x * w + 10, y * h + 20);
+                }
+            }
+            ctx.globalAlpha = 1.00;
+            ctx.beginPath();
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function getSquare(canvas, evt) {
+            var rect = canvas.getBoundingClientRect();
+            return {
+                x: 1 + (evt.clientX - rect.left) - (evt.clientX - rect.left) % w,
+                y: 1 + (evt.clientY - rect.top) - (evt.clientY - rect.top) % h
+            };
+        }
+
+        function drawRect(initialPoint, endPoint) {
+            var dimX = Math.abs(initialPoint.x - endPoint.x) + 1;
+            var dimY = Math.abs(initialPoint.y - endPoint.y) + 1;
+
+            ctx.save();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "black";
+            ctx.setLineDash([7]);
+            ctx.strokeRect((initialPoint.y - 1) * w, (initialPoint.x - 1) * h, w * dimY, h * dimX);
+            ctx.restore();
+
+            var selection = new Selection(initialPoint, endPoint, null, dimX * dimY);
+            selectionMatrix.push(selection);
+            var isValid = validateSelection(selection);
+            if (!isValid)
+                toastr.warning('Your selection is incorrect');
+        }
+
+        function undoSelection() {
+            var removeSelection = selectionMatrix.pop();
+
+            if (removeSelection != null) {
+                var dimX = Math.abs(removeSelection.startPoint.x - removeSelection.endPoint.x) + 1;
+                var dimY = Math.abs(removeSelection.startPoint.y - removeSelection.endPoint.y) + 1;
+
+                ctx.save();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = "gray";
+                ctx.strokeRect((removeSelection.startPoint.y - 1) * w, (removeSelection.startPoint.x - 1) * h, w * dimY, h * dimX);
+                ctx.restore();
+            }
+        }
+
+
+        $(document).ready(function () {
+
+            function handleMouseDown(e) {
+                var mousePos = getSquare(canvas, e);
+                var j = Math.ceil(mousePos.x / w);
+                var i = Math.ceil(mousePos.y / h);
+
+                console.log(`start: ${i},${j}`);
+                initialPoint = new Point(i, j);
+            }
+            function handleMouseUp(e) {
+
+                var mousePos = getSquare(canvas, e);
+                var i = Math.ceil(mousePos.y / h);
+                var j = Math.ceil(mousePos.x / w);
+
+                console.log(`end: ${i},${j}`);
+
+                endPoint = new Point(i, j);
+
+                drawRect(initialPoint, endPoint);
+
+                console.log(selectionMatrix);
+
+            }
+            function handleMouseMove(e) {
+                var mousePos = getMousePosition(canvas, e);
+                //Handle if you need smooth drag experience
+            }
+            function getMousePosition(canvas, e) {
+                var boundary = canvas.getBoundingClientRect();
+                // (e.clientX, e.clientY)  => Mouse coordinates wrt whole browser
+                //  (boundary.left, boundary.top) => Canvas starting coordinate
+
+
+                return {
+                    x: e.clientX - boundary.left,
+                    y: e.clientY - boundary.top
+                };
+            }
+            canvas.addEventListener('mousemove', handleMouseMove, false);
+            canvas.addEventListener('mousedown', handleMouseDown, false);
+            canvas.addEventListener('mouseup', handleMouseUp, false);
+
+            setupCanvas();
+
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-center",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        });
+    </script>
+}
